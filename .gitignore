@@ -1,0 +1,74 @@
+*.iml
+.gradle
+/local.properties
+.DS_Store
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+kls_database.db
+
+# Auto-generated doc
+docs/api
+site
+venv
+
+# ===============================================
+# Android Studio & Gradle Build Artifacts
+# ===============================================
+
+# Generated files and folders from building the project
+/build
+/app/build
+/app/reports
+
+# Generated APKs, AABs, and other build outputs
+*.apk
+*.aab
+*.ap_
+*.apks
+*.war
+*.ear
+*.dm
+
+# Build metadata
+output-metadata.json
+signing-config.json
+
+# Local configuration files (should not be shared)
+.gradle/
+c.gradle/
+/captures/
+
+# IDE-specific files (adding all to keep codeStyles/Project.xml)
+.idea/workspace.xml
+.idea/libraries/
+.idea/.gitignore
+.idea/.name
+.idea/AndroidProjectSystem.xml
+.idea/assetWizardSettings.xml
+.idea/compiler.xml
+.idea/deploymentTargetSelector.xml
+.idea/deviceManager.xml
+.idea/gradle.xml
+.idea/markdown.xml
+.idea/migrations.xml
+.idea/misc.xml
+.idea/runConfigurations.xml
+.idea/studiobot.xml
+.idea/vcs.xml
+.idea/caches/deviceStreaming.xml
+.idea/inspectionProfiles/Project_Default.xml
+*.ipr
+*.iws
+
+# Log files
+*.log
+
+# Keystore files (NEVER commit these)
+*.jks
+*.keystore
+
+# Lint results
+lint-results-*.xml
+lint-results-*.html

@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">Swittest L3 template</string>
+    <string name="settings">Settings</string>
+    <string name="server_ip_address">Server address</string>
+    <string name="device_type">Device type</string>
+    <string name="poi_id">POI ID</string>
+    <string name="timeout">Timeout in seconds</string>
+    <string name="max_attempts">Max attempts</string>
+    <string name="delay_between_connection_tries_ms">Delay between connection tries (ms)</string>
+    <string name="about">About</string>
+    <string name="save_settings">Save settings</string>
+    <string name="kernel_version">Version: %1$s</string>
+    <string name="kernel_checksum">Checksum:\u00A0</string>
+    <string name="unknown_value">N/A</string>
+    <string name="current_os_version">Current version:</string>
+    <string name="min_supported_version">Min supported version:</string>
+    <string name="android_version"> Android %1$s (SDK %2$d)</string>
+    <string name="swittest_l3_version">Application version: %1$s</string>
+    <string name="entry_point">Entry point</string>
+    <string name="android_os">Android operating system</string>
+    <string name="build_firmware">Build / Firmware</string>
+    <string name="build_version">Build: %s</string>
+    <string name="firmware_version">Firmware: %s</string>
+    <string name="wrong_formated_fields">The following fields are incorrectly formatted: \n%1$s</string>
+</resources>
