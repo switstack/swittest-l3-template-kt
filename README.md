@@ -1,7 +1,17 @@
 # swittest-l3-template-kt
 Swittest L3 template Kotlin application
 
-This app aims to perform multiple tests with Swittest environment. To get your config and credentials please contact Switstack team.  
+This application is designed to conduct comprehensive payment transaction testing within the [Swittest environment](https://docs.switstack.io/swittest/).
+
+The process begins by establishing a connection to Swittest. Once authenticated via a custom protocol, Swittest orchestrates the test suite workflow. 
+
+Upon initialization, the application authenticates with [Switcloud](https://docs.switstack.io/switcloud/) through a dedicated client to manage the payment execution. Transactions are then processed using specific parameters retrieved directly from Swittest.
+
+This application supports both physical and virtual cards provided by Swittest. Users can toggle between these two modes by selecting the appropriate build flavor:
+* mokastd: For physical card testing.
+* mokavepl: For virtual (emulated) card testing.
+
+Please contact Switstack team to get your config and credentials.  
 
 ## Configuration
 
