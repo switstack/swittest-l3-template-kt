@@ -22,4 +22,5 @@
     <string name="build_version">Build: %s</string>
     <string name="firmware_version">Firmware: %s</string>
     <string name="wrong_formated_fields">The following fields are incorrectly formatted: \n%1$s</string>
+    <string name="message_history">History of messages</string>
 </resources>

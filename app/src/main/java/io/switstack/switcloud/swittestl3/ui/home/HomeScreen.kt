@@ -16,14 +16,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +41,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -48,11 +53,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Devices.TABLET
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import io.switstack.switcloud.switcloudclt.data.OutcomeParameterSet
-import io.switstack.switcloud.switcloudclt.data.UserInterfaceRequestData
 import io.switstack.switcloud.swittestl3.R
 import io.switstack.switcloud.swittestl3.Routes
 import io.switstack.switcloud.swittestl3.data.ConnectionManager
@@ -87,6 +93,9 @@ fun HomeScreen(
     val paymentProcessMessage by homeViewModel.paymentProcessMessage.collectAsStateWithLifecycle()
 
     val allCombinedSettings = remember { mutableStateOf<CombinedSettings?>(null) }
+
+    val uirdHistory by homeViewModel.messageHistory.collectAsStateWithLifecycle()
+    var showDialog by remember { mutableStateOf(false) }
 
     message?.let {
         snackbarManager.showSnackbar(
@@ -126,7 +135,11 @@ fun HomeScreen(
         connectionManager::requestSocketClose,
         currentSnackbar,
         snackbarManager::dismissCurrentSnackbar,
-        homeViewModel::cancelPolling
+        homeViewModel::cancelPolling,
+        { showDialog = true },
+        { showDialog = false },
+        showDialog,
+        uirdHistory
     )
 }
 
@@ -142,7 +155,11 @@ fun HomeScreenContent(
     requestCloseConnection: () -> Unit,
     customSnackbarMessage: CustomSnackbarMessage?,
     dismissSnackbar: () -> Unit,
-    cancel: () -> Unit
+    cancel: () -> Unit,
+    onShowDialogClick: () -> Unit,
+    onDismissDialogClick: () -> Unit,
+    isShowDialog: Boolean,
+    uirdHistory: List<String>
 ) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -262,6 +279,20 @@ fun HomeScreenContent(
                                 .clip(shape = RoundedCornerShape(24.dp))
                                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
                         ) {
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                IconButton(
+                                    modifier = Modifier.padding(0.dp),
+                                    onClick = onShowDialogClick
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.AccessTime,
+                                        contentDescription = stringResource(R.string.message_history)
+                                    )
+                                }
+                            }
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Row {
                                     Text(
@@ -390,6 +421,62 @@ fun HomeScreenContent(
                 }
             }
         }
+        if (isShowDialog) {
+            ScrollableListDialog(uirdHistory, onDismissDialogClick)
+        }
+    }
+}
+
+@Composable
+fun ScrollableListDialog(
+    messages: List<String>,
+    onDismissRequest: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(usePlatformDefaultWidth = true)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.7f), // Limit height so it doesn't take the whole screen
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "UIRD history",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                LazyColumn(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    items(messages.count()) { position ->
+                        Text(
+                            text = messages.get(position),
+                            autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 14.sp)
+                        )
+                        HorizontalDivider(thickness = 0.5.dp)
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Button(onClick = onDismissRequest) {
+                        Text("Close")
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -401,9 +488,8 @@ fun HomeScreenPreview() {
         navController = null,
         paymentProcessStatus = PaymentProcessStatus.Step1Confirmation,
         paymentProcessMessage = UserInfo.UserMessage(
-            status = UserInterfaceRequestData.Status.CARD_READ_SUCCESSFULLY.run { "$name (${value.toHexString()})" },
-            message = UserInterfaceRequestData.MessageIdentifier.AUTHORIZING_PLEASE_WAIT.run { "$name (${value.toHexString()})" },
-            ops = OutcomeParameterSet.Status.TRY_ANOTHER_INTERFACE.run { "$name (${value.toHexString()})" }
+            null,
+            defaultMessageStatus = "Welcome"
         ),
         isConnected = true,
         isConnecting = true,
@@ -411,6 +497,29 @@ fun HomeScreenPreview() {
         requestCloseConnection = {},
         customSnackbarMessage = null,
         dismissSnackbar = {},
-        cancel = {}
+        cancel = {},
+        onShowDialogClick = {},
+        onDismissDialogClick = {},
+        isShowDialog = true,
+        listOf(
+            """
+            UIRD: df81161b00000000656e646566720000
+                |_ Message ID: AUTHORIZING_PLEASE_WAIT (1b)
+                |_ Status: NOT_READY (00)
+                |_ Hold time: 0 
+            """.trimIndent(),
+            """
+            UIRD: df81161e040000000000000000000000
+                |_ Message ID: CLEAR_DISPLAY (1e)
+                |_ Status: CARD_READ_SUCCESSFULLY (04)
+                |_ Hold time: 0 
+            """.trimIndent(),
+            """
+            UIRD: df811615020000000000000000000000
+                |_ Message ID: PRESENT_CARD (15)
+                |_ Status: READY_TO_READ (02)
+                |_ Hold time: 0 
+            """.trimIndent()
+        )
     )
 }

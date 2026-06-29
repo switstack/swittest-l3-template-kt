@@ -31,9 +31,7 @@ object TlvUtils {
                 }
 
                 tagUserInterfaceRequestData -> {
-                    val message = UserInterfaceRequestData.MessageIdentifier.from(it.bytesValue[0])?.let { "${it.name} (${it.value.toHexString()})" } ?: ""
-                    val status = UserInterfaceRequestData.Status.from(it.bytesValue[1])?.let { "${it.name} (${it.value.toHexString()})" } ?: ""
-                    val userMessage = UserInfo.UserMessage(status, message)
+                    val userMessage = UserInfo.UserMessage(UserInterfaceRequestData(it.bytesValue))
                     Timber.d("TLV userMessage $userMessage")
                     userInfoList.add(userMessage)
                 }
