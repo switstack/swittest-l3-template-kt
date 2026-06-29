@@ -17,6 +17,7 @@ import io.switstack.switcloud.swittestl3.data.PaymentProcessStatus.Step1Confirma
 import io.switstack.switcloud.swittestl3.data.PaymentProcessStatus.Step2Confirmation
 import io.switstack.switcloud.swittestl3.data.PaymentProcessStatus.Step3Confirmation
 import io.switstack.switcloud.swittestl3.data.ResetEvent
+import io.switstack.switcloud.swittestl3.data.StartPaymentEvent
 import io.switstack.switcloud.swittestl3.data.UserInfo
 import io.switstack.switcloud.swittestl3.domain.ResponseResolver
 import kotlinx.coroutines.Dispatchers
@@ -29,11 +30,13 @@ import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import timber.log.Timber
 
-class HomeViewModel() : ViewModel(), KoinComponent {
+class HomeViewModel : ViewModel(), KoinComponent {
     private val _paymentProcessStatus = MutableStateFlow<PaymentProcessStatus>(Idle)
     val paymentProcessStatus: StateFlow<PaymentProcessStatus> = _paymentProcessStatus.asStateFlow()
     private val _paymentProcessMessage = MutableStateFlow<UserInfo.UserMessage?>(null)
     val paymentProcessMessage = _paymentProcessMessage.asStateFlow()
+
+    val messageHistory = MutableStateFlow<List<String>>(listOf())
 
     private var hasFirstLaunchRun = false
 
@@ -47,7 +50,8 @@ class HomeViewModel() : ViewModel(), KoinComponent {
                 SwitcloudClt.bipEvent,
                 ResponseResolver.initiateResponse,
                 ResponseResolver.readyStatus,
-                ResponseResolver.resetStatus
+                ResponseResolver.resetStatus,
+                ResponseResolver.startPayment
             ).collect {
                 when (it) {
                     is BipEvent -> {
@@ -72,14 +76,13 @@ class HomeViewModel() : ViewModel(), KoinComponent {
                         val ops = it.outcomeParameterSet?.status
                         Timber.d("HVM ops ${it.outcomeParameterSet}")
 
+                        val paymentMessage = UserInfo.UserMessage(uird, ops)
                         _paymentProcessMessage.update {
-                            UserInfo.UserMessage(
-                                uird?.status?.let { "${it.name} (${it.value.toHexString()})" } ?: "",
-                                uird?.messageIdentifier?.let { "${it.name} (${it.value.toHexString()})" } ?: "",
-                                ops?.let { "${it.name} (${it.value.toHexString()})" }
-
-                            )
+                            paymentMessage
                         }
+
+                        addMessageToHistory(paymentMessage)
+
                         _paymentProcessStatus.update {
                             when (ops) {
                                 OutcomeParameterSet.Status.APPROVED,
@@ -133,6 +136,7 @@ class HomeViewModel() : ViewModel(), KoinComponent {
                                     it.let { userMessage ->
                                         _paymentProcessMessage.update { userMessage }
                                     }
+                                    addMessageToHistory(it)
                                 }
                             }
                         }
@@ -152,6 +156,10 @@ class HomeViewModel() : ViewModel(), KoinComponent {
                         Timber.d("HVM reset to Ready")
                         resetToReady()
                     }
+
+                    is StartPaymentEvent -> {
+                        messageHistory.update { listOf() }
+                    }
                 }
             }
         }
@@ -159,12 +167,30 @@ class HomeViewModel() : ViewModel(), KoinComponent {
 
     private fun resetToReady() {
         _paymentProcessStatus.update { Ready }
-        _paymentProcessMessage.update { UserInfo.UserMessage(null, "Welcome") }
+        _paymentProcessMessage.update { UserInfo.UserMessage(null, defaultMessageStatus = "Welcome") }
     }
 
     fun cancelPolling() {
-        SwitcloudClt.cancelPolling()
+        SwitcloudClt.setPollingCancelled(true)
         // cleanup is done in startPayment() finally clause
+    }
+
+    fun addMessageToHistory(userMessage: UserInfo.UserMessage) {
+        userMessage.run {
+            """
+            UIRD: df8116${uird?.data?.toHexString()}
+                |_ Message ID: $message
+                |_ Status: $status
+                |_ Hold time: ${uird?.holdTime ?: ""} 
+            """.trimIndent()
+        }.let { formattedMessage ->
+            Timber.d("HVM formattedMessage $formattedMessage")
+            messageHistory.update {
+                mutableListOf(formattedMessage).apply {
+                    addAll(messageHistory.value)
+                }
+            }
+        }
     }
 
     fun performFirstLaunchAction(action: () -> Unit) {

@@ -1,5 +1,4 @@
 import com.android.build.api.variant.BuildConfigField
-import io.gitlab.arturbosch.detekt.Detekt
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
@@ -109,6 +108,10 @@ androidComponents {
     }
 }
 
+base {
+    archivesName.set("${rootProject.name}-$appVersionName")
+}
+
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_21)
@@ -132,8 +135,9 @@ dependencies {
     implementation(libs.koin.core)
     implementation(libs.koin.androidx.compose)
 
-    // Switcloud Client
+    // Switcloud deps
     implementation(libs.switcloud.clt)
+    implementation(libs.switcloud.l2)
 
     // TLV parser / builder
     implementation(libs.tlv)
@@ -148,21 +152,12 @@ dependencies {
 
 detekt {
     autoCorrect = true
-    toolVersion = "1.23.8"
+    toolVersion = libs.versions.detekt.get()
     source.setFrom("src/main/java/")
     config.setFrom("../conf/detekt/detekt.yml")
     buildUponDefaultConfig = true
     basePath = projectDir.absolutePath
     debug = false
-}
-
-tasks.withType<Detekt>().configureEach {
-    reports {
-        xml.required.set(true)
-        html.required.set(true)
-        xml.outputLocation.set(file("build/reports/detekt.xml"))
-        html.outputLocation.set(file("build/reports/detekt.html"))
-    }
 }
 
 dependencies {

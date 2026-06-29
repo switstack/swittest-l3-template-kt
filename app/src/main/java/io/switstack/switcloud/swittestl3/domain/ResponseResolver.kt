@@ -10,6 +10,7 @@ import io.switstack.switcloud.swittestl3.common.SwittestL3Exception
 import io.switstack.switcloud.swittestl3.data.Header
 import io.switstack.switcloud.swittestl3.data.MessageTypeEnum
 import io.switstack.switcloud.swittestl3.data.ResetEvent
+import io.switstack.switcloud.swittestl3.data.StartPaymentEvent
 import io.switstack.switcloud.swittestl3.data.StatusEnum
 import io.switstack.switcloud.swittestl3.data.requests.PaymentRequest
 import io.switstack.switcloud.swittestl3.data.requests.Request
@@ -45,6 +46,9 @@ object ResponseResolver : KoinComponent {
     private val _resetStatus: MutableSharedFlow<ResetEvent> = MutableSharedFlow(1)
     val resetStatus: SharedFlow<ResetEvent> = _resetStatus.asSharedFlow()
 
+    private val _startPayment: MutableSharedFlow<StartPaymentEvent> = MutableSharedFlow(1)
+    val startPayment: SharedFlow<StartPaymentEvent> = _startPayment.asSharedFlow()
+
     fun createResponsePayload(request: Request, serverHost: String, poiId: UUID, deviceType: String): Response {
         var status = Status(code = StatusEnum.ErrInternal.code)
         var data: PoiInfoResponse? = null
@@ -75,6 +79,7 @@ object ResponseResolver : KoinComponent {
                 request.payload?.let { payload ->
                     val paymentRequest = json.decodeFromString<PaymentRequest>(payload.toString())
                     client?.let { client ->
+                        _startPayment.tryEmit(StartPaymentEvent())
                         startPayment(client, paymentRequest) {
                             status = it
                         }
@@ -170,6 +175,7 @@ object ResponseResolver : KoinComponent {
     }
 
     fun onDisconnected() {
+        client?.cleanup()
         _readyStatus.update { false }
     }
 }
