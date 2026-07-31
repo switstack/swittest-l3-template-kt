@@ -13,6 +13,14 @@ import java.util.concurrent.TimeUnit
 
 val swittestL3Module = module {
 
+/*
+    If the selected L2 implementation inherits ISwitcloudL2Test,
+    the dependency switcloud-l2-kt should be replaced by switcloud-l2-domain-kt (version 2.2.0 or above),
+    the dependency switcloud-clt-kt should be updated to version 2.4.0 or above
+    and the injection should bind to the 2 interfaces like the following line :
+    single { CustomL2.getInstance() } binds arrayOf(ISwitcloudL2::class, ISwitcloudL2Test::class)
+ */
+
     single<ISwitcloudL2> { SwitcloudL2.getInstance() }
 
     includes(switcloudClientModule)

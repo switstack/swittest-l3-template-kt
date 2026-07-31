@@ -18,8 +18,8 @@ timber = "5.0.1"
 tlv = "1.0-11"
 navigationCompose = "2.9.8"
 koin = "4.2.2"
-switcloud-clt = "2.2.0"
-switcloud-l2 = "2.1.0"
+switcloud-clt = "2.4.0"
+switcloud-l2 = "2.2.0"
 okhttp = "5.4.0"
 
 [libraries]
