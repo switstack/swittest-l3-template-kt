@@ -23,13 +23,13 @@ val localProperties = Properties().apply {
 android {
     namespace = "io.switstack.switcloud.swittestl3"
     compileSdk {
-        version = release(36)
+        version = release(37)
     }
 
     defaultConfig {
         applicationId = "io.switstack.switcloud.swittestl3.template"
         minSdk = 28
-        targetSdk = 36
+        targetSdk = 37
         versionName = appVersionName
         versionCode = generateVersionCode(appVersionName)
 
@@ -60,6 +60,7 @@ android {
     }
 
     flavorDimensions += "l2"
+    flavorDimensions += "usage"
 
     productFlavors {
         create("mokastd") {
@@ -70,6 +71,14 @@ android {
         create("mokavepl") {
             dimension = "l2"
             missingDimensionStrategy("hal", "vepl")
+        }
+
+        create("basic") {
+            dimension = "usage"
+        }
+
+        create("advanced") {
+            dimension = "usage"
         }
     }
 

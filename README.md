@@ -8,8 +8,15 @@ The process begins by establishing a connection to Swittest. Once authenticated 
 Upon initialization, the application authenticates with [Switcloud](https://docs.switstack.io/switcloud/) through a dedicated client to manage the payment execution. Transactions are then processed using specific parameters retrieved directly from Swittest.
 
 This application supports both physical and virtual cards provided by Swittest. Users can toggle between these two modes by selecting the appropriate build flavor:
-* mokastd: For physical card testing.
-* mokavepl: For virtual (emulated) card testing.
+* __mokastd__: For physical card testing.
+* __mokavepl__: For virtual (emulated) card testing.
+
+It is also possible switch between 2 usages that are available with physical and virtual modes.
+* __basic__: Let the switcloud client manage the transaction steps.
+* __advanced__: Allow the L3 app managing precisely the transaction steps.
+
+Receipt feature is available for all variants.
+Pin entry feature for online pin (with pinblock generation) is available for advanced usage.
 
 Please contact Switstack team to get your config and credentials.  
 

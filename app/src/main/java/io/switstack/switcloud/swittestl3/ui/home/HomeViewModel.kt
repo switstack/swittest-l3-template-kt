@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import io.switstack.switcloud.switcloudclt.data.BipEvent
 import io.switstack.switcloud.switcloudclt.data.InitiationData
 import io.switstack.switcloud.switcloudclt.data.OutcomeParameterSet
+import io.switstack.switcloud.switcloudclt.data.Receipt
 import io.switstack.switcloud.switcloudclt.domain.SwitcloudClt
+import io.switstack.switcloud.swittestl3.R
 import io.switstack.switcloud.swittestl3.common.CustomTonesGenerator
 import io.switstack.switcloud.swittestl3.common.TlvUtils.parseUirdTlv
 import io.switstack.switcloud.swittestl3.data.PaymentProcessStatus
@@ -16,12 +18,14 @@ import io.switstack.switcloud.swittestl3.data.PaymentProcessStatus.Ready
 import io.switstack.switcloud.swittestl3.data.PaymentProcessStatus.Step1Confirmation
 import io.switstack.switcloud.swittestl3.data.PaymentProcessStatus.Step2Confirmation
 import io.switstack.switcloud.swittestl3.data.PaymentProcessStatus.Step3Confirmation
+import io.switstack.switcloud.swittestl3.data.PinRequestEvent
 import io.switstack.switcloud.swittestl3.data.ResetEvent
 import io.switstack.switcloud.swittestl3.data.StartPaymentEvent
 import io.switstack.switcloud.swittestl3.data.UserInfo
 import io.switstack.switcloud.swittestl3.domain.ResponseResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.merge
@@ -29,6 +33,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import timber.log.Timber
+import java.util.Locale
 
 class HomeViewModel : ViewModel(), KoinComponent {
     private val _paymentProcessStatus = MutableStateFlow<PaymentProcessStatus>(Idle)
@@ -36,7 +41,11 @@ class HomeViewModel : ViewModel(), KoinComponent {
     private val _paymentProcessMessage = MutableStateFlow<UserInfo.UserMessage?>(null)
     val paymentProcessMessage = _paymentProcessMessage.asStateFlow()
 
+    val pinRequest: SharedFlow<PinRequestEvent?> = ResponseResolver.pinRequest
+
     val messageHistory = MutableStateFlow<List<String>>(listOf())
+
+    val receipt = MutableStateFlow<Map<Int, String>>(mapOf())
 
     private var hasFirstLaunchRun = false
 
@@ -48,6 +57,7 @@ class HomeViewModel : ViewModel(), KoinComponent {
             merge(
                 SwitcloudClt.userInfo,
                 SwitcloudClt.bipEvent,
+                SwitcloudClt.transactionReceipt,
                 ResponseResolver.initiateResponse,
                 ResponseResolver.readyStatus,
                 ResponseResolver.resetStatus,
@@ -159,6 +169,20 @@ class HomeViewModel : ViewModel(), KoinComponent {
 
                     is StartPaymentEvent -> {
                         messageHistory.update { listOf() }
+                        receipt.update { mapOf() }
+                    }
+
+
+                    is Receipt -> {
+                        Timber.d("HVM receipt received $it")
+                        val receiptMap = mutableMapOf(
+                            R.string.amount to String.format(Locale.ROOT, "%.2f", it.amount.toDouble() / 100),
+                            R.string.ac to it.ac
+                        )
+                        if (it.isSignature) {
+                            receiptMap[R.string.signature] = "_______________________________"
+                        }
+                        receipt.update { receiptMap }
                     }
                 }
             }
@@ -191,6 +215,10 @@ class HomeViewModel : ViewModel(), KoinComponent {
                 }
             }
         }
+    }
+
+    fun onPinVerdict(pinValue: String?) {
+        ResponseResolver.pinInput.trySend(pinValue)
     }
 
     fun performFirstLaunchAction(action: () -> Unit) {

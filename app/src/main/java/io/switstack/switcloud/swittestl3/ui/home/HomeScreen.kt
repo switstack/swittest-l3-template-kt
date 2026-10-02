@@ -72,6 +72,7 @@ import io.switstack.switcloud.swittestl3.ui.custom_snackbar.CustomSnackbarMessag
 import io.switstack.switcloud.swittestl3.ui.settings.SettingsViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,10 +93,14 @@ fun HomeScreen(
     val paymentProcessStatus by homeViewModel.paymentProcessStatus.collectAsStateWithLifecycle()
     val paymentProcessMessage by homeViewModel.paymentProcessMessage.collectAsStateWithLifecycle()
 
+    val pinRequest by homeViewModel.pinRequest.collectAsStateWithLifecycle(null)
+
     val allCombinedSettings = remember { mutableStateOf<CombinedSettings?>(null) }
 
     val uirdHistory by homeViewModel.messageHistory.collectAsStateWithLifecycle()
     var showDialog by remember { mutableStateOf(false) }
+
+    val receipt by homeViewModel.receipt.collectAsStateWithLifecycle()
 
     message?.let {
         snackbarManager.showSnackbar(
@@ -139,7 +144,11 @@ fun HomeScreen(
         { showDialog = true },
         { showDialog = false },
         showDialog,
-        uirdHistory
+        { pinValue -> homeViewModel.onPinVerdict(pinValue) },
+        pinRequest != null,
+        uirdHistory,
+        receipt,
+        { homeViewModel.receipt.update { mapOf() } }
     )
 }
 
@@ -157,9 +166,13 @@ fun HomeScreenContent(
     dismissSnackbar: () -> Unit,
     cancel: () -> Unit,
     onShowDialogClick: () -> Unit,
-    onDismissDialogClick: () -> Unit,
-    isShowDialog: Boolean,
-    uirdHistory: List<String>
+    onDismissHistoryDialogClick: () -> Unit,
+    isShowHistoryDialog: Boolean,
+    onDismissPinDialogClick: (String?) -> Unit,
+    isShowPinDialog: Boolean,
+    uirdHistory: List<String>,
+    receipt: Map<Int, String>,
+    onDismissReceiptDialogClick: () -> Unit
 ) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -421,8 +434,14 @@ fun HomeScreenContent(
                 }
             }
         }
-        if (isShowDialog) {
-            ScrollableListDialog(uirdHistory, onDismissDialogClick)
+        if (isShowHistoryDialog) {
+            ScrollableListDialog(uirdHistory, onDismissHistoryDialogClick)
+        }
+        if (isShowPinDialog) {
+            PinEntryDialog(onDismissPinDialogClick)
+        }
+        if (receipt.isNotEmpty()) {
+            ReceiptDialog(receipt, onDismissReceiptDialogClick)
         }
     }
 }
@@ -434,13 +453,17 @@ fun ScrollableListDialog(
 ) {
     Dialog(
         onDismissRequest = onDismissRequest,
-        properties = DialogProperties(usePlatformDefaultWidth = true)
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = true
+        )
     ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.7f), // Limit height so it doesn't take the whole screen
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp
         ) {
@@ -448,7 +471,7 @@ fun ScrollableListDialog(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "UIRD history",
+                    text = stringResource(R.string.uird_history),
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
@@ -472,7 +495,7 @@ fun ScrollableListDialog(
                     contentAlignment = Alignment.CenterEnd
                 ) {
                     Button(onClick = onDismissRequest) {
-                        Text("Close")
+                        Text(stringResource(R.string.close))
                     }
                 }
             }
@@ -499,9 +522,11 @@ fun HomeScreenPreview() {
         dismissSnackbar = {},
         cancel = {},
         onShowDialogClick = {},
-        onDismissDialogClick = {},
-        isShowDialog = true,
-        listOf(
+        onDismissHistoryDialogClick = {},
+        isShowHistoryDialog = false,
+        onDismissPinDialogClick = { _ -> },
+        isShowPinDialog = true,
+        uirdHistory = listOf(
             """
             UIRD: df81161b00000000656e646566720000
                 |_ Message ID: AUTHORIZING_PLEASE_WAIT (1b)
@@ -520,6 +545,8 @@ fun HomeScreenPreview() {
                 |_ Status: READY_TO_READ (02)
                 |_ Hold time: 0 
             """.trimIndent()
-        )
+        ),
+        receipt = mapOf(),
+        onDismissReceiptDialogClick = {}
     )
 }
