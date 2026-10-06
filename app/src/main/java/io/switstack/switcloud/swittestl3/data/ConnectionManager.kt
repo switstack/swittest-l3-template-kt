@@ -2,7 +2,6 @@ package io.switstack.switcloud.swittestl3.data
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.switstack.switcloud.swittestl3.BuildConfig
 import io.switstack.switcloud.swittestl3.data.settings.CombinedSettings
 import io.switstack.switcloud.swittestl3.domain.ResponseResolver
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +43,6 @@ class ConnectionManager() : ViewModel(), KoinComponent {
                 .url(url)
                 .addHeader("Upgrade", "websocket")
                 .addHeader("Connection", "Upgrade")
-                .addHeader("x-switstack-client-attestation", BuildConfig.SWITSTACK_CLIENT_ATTESTATION_SECRET)
                 .build()
 
             var errorsCounter = 0
