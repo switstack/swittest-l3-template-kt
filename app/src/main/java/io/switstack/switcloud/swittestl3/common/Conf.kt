@@ -1,7 +1,6 @@
 package io.switstack.switcloud.swittestl3.common
 
 import io.switstack.switcloud.swittestl3.BuildConfig
-import io.switstack.switcloud.swittestl3.data.settings.CombinedSettings
 import java.util.UUID
 
 object Conf {
@@ -12,12 +11,15 @@ object Conf {
     const val TIMEOUT = 10
     const val DELAY_RETRIES = 1000L
 
-    val DEFAULT_SETTINGS = CombinedSettings(
-        SERVER_ADDRESS,
-        TIMEOUT,
-        MAX_ATTEMPTS,
-        DELAY_RETRIES,
-        POI_ID,
-        DEVICE_TYPE
+    // APDU logging
+    val readerParams = byteArrayOf(
+        // Supported interfaces
+        0xDF.toByte(), 0xA0.toByte(), 0x06, 0x01, 0x04,
+        // Trace (on)
+        0xDF.toByte(), 0xA0.toByte(), 0x18, 0x01, 0x01,
+        // Timeout interfaces detection (25 sec)
+        0xDF.toByte(), 0xA0.toByte(), 0x08, 0x01, 0x19,
+        // Polling timeout (30 sec)
+        0xDF.toByte(), 0xA0.toByte(), 0x07, 0x01, 0x1e
     )
 }

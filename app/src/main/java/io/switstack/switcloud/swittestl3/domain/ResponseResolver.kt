@@ -2,6 +2,7 @@ package io.switstack.switcloud.swittestl3.domain
 
 import io.switstack.switcloud.switcloudclt.common.SwitcloudClientException
 import io.switstack.switcloud.switcloudclt.data.InitiationData
+import io.switstack.switcloud.switcloudclt.data.OutcomeParameterSet
 import io.switstack.switcloud.switcloudclt.domain.SwitcloudTestClient
 import io.switstack.switcloud.swittestl3.BuildConfig
 import io.switstack.switcloud.swittestl3.common.SerializationUtils.json
@@ -9,6 +10,7 @@ import io.switstack.switcloud.swittestl3.common.SerializationUtils.toJsonObject
 import io.switstack.switcloud.swittestl3.common.SwittestL3Exception
 import io.switstack.switcloud.swittestl3.data.Header
 import io.switstack.switcloud.swittestl3.data.MessageTypeEnum
+import io.switstack.switcloud.swittestl3.data.Receipt
 import io.switstack.switcloud.swittestl3.data.ResetEvent
 import io.switstack.switcloud.swittestl3.data.StartPaymentEvent
 import io.switstack.switcloud.swittestl3.data.StatusEnum
@@ -19,6 +21,7 @@ import io.switstack.switcloud.swittestl3.data.responses.PoiInfoResponse
 import io.switstack.switcloud.swittestl3.data.responses.Response
 import io.switstack.switcloud.swittestl3.data.responses.ResponsePayload
 import io.switstack.switcloud.swittestl3.data.responses.Status
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -49,7 +52,12 @@ object ResponseResolver : KoinComponent {
     private val _startPayment: MutableSharedFlow<StartPaymentEvent> = MutableSharedFlow(1)
     val startPayment: SharedFlow<StartPaymentEvent> = _startPayment.asSharedFlow()
 
-    fun createResponsePayload(request: Request, serverHost: String, poiId: UUID, deviceType: String): Response {
+    val pinInput = Channel<String?>(capacity = Channel.BUFFERED)
+
+    private val _transactionReceipt: MutableSharedFlow<Receipt> = MutableSharedFlow(1)
+    val transactionReceipt: SharedFlow<Receipt> = _transactionReceipt.asSharedFlow()
+
+    suspend fun createResponsePayload(request: Request, serverHost: String, poiId: UUID, deviceType: String): Response {
         var status = Status(code = StatusEnum.ErrInternal.code)
         var data: PoiInfoResponse? = null
 
@@ -79,7 +87,7 @@ object ResponseResolver : KoinComponent {
                 request.payload?.let { payload ->
                     val paymentRequest = json.decodeFromString<PaymentRequest>(payload.toString())
                     client?.let { client ->
-                        _startPayment.tryEmit(StartPaymentEvent())
+                        _startPayment.emit(StartPaymentEvent())
                         startPayment(client, paymentRequest) {
                             status = it
                         }
@@ -115,7 +123,15 @@ object ResponseResolver : KoinComponent {
                 setCredentialsRequest.switcloudUrl
             }
             return get<SwitcloudTestClient> { parametersOf(serverUrl) }.apply {
-                authenticateMachine(setCredentialsRequest.clientId, setCredentialsRequest.clientSecret, BuildConfig.SWITSTACK_CLIENT_ATTESTATION_SECRET)
+                authenticateMachine(
+                    setCredentialsRequest.clientId,
+                    setCredentialsRequest.clientSecret,
+                    setCredentialsRequest.attestationHeaderName?.let { name ->
+                        setCredentialsRequest.attestationHeaderValue?.let { value ->
+                            name to value
+                        }
+                    }
+                )
             }
         } catch (e: SwitcloudClientException) {
             Timber.e(e, "Failed to authenticate: ${e.cause}")
@@ -126,16 +142,27 @@ object ResponseResolver : KoinComponent {
         }
     }
 
-    private fun startPayment(client: SwitcloudTestClient, request: PaymentRequest, onFinished: (Status) -> Unit) {
+    private suspend fun startPayment(
+        client: SwitcloudTestClient,
+        request: PaymentRequest,
+        onFinished: (Status) -> Unit
+    ) {
         try {
-            client.run {
+            PaymentManager(client, pinInput).run {
                 initialize()
                 configure(request.paymentId, null)
-                loadVCard(request, client)
-                initiate(request.paymentId).also {
-                    _initiateResponse.tryEmit(it)
+                request.vcardData?.let {
+                    loadVCard(it)
                 }
-                complete()
+                val initiateResponse = initiate()
+                _initiateResponse.emit(initiateResponse.copy()) // copy prevents the vale from being erased by the new one
+                if (initiateResponse.outcomeParameterSet?.status == OutcomeParameterSet.Status.ONLINE_REQUEST) {
+                    val completeResponse = complete(initiateResponse, request.authorizationResponse ?: "")
+                    _initiateResponse.emit(completeResponse)
+                    emitReceipt(completeResponse, _transactionReceipt)
+                } else {
+                    emitReceipt(initiateResponse, _transactionReceipt)
+                }
             }
             onFinished(Status(StatusEnum.Ok.code))
         } catch (e: Exception) {
@@ -166,8 +193,8 @@ object ResponseResolver : KoinComponent {
             }
         }
 
-    private fun onPaymentIncomplete() {
-        _resetStatus.tryEmit(ResetEvent())
+    private suspend fun onPaymentIncomplete() {
+        _resetStatus.emit(ResetEvent())
     }
 
     fun onGetPoiIdSent() {

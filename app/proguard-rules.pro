@@ -56,5 +56,4 @@
 
 #======================= BER-TLV Library ===============================
 # Keep classes from the ber-tlv library to prevent issues with reflection.
--keep class io.switstack.switcloud.switcloudl2.** { *; }
 -keep class com.payneteasy.tlv.** { *; }
