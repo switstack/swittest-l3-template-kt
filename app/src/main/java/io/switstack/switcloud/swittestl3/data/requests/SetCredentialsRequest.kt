@@ -11,4 +11,8 @@ data class SetCredentialsRequest(
     val clientId: String,
     @SerialName("client_secret")
     val clientSecret: String,
+    @SerialName("attestation_header_name")
+    val attestationHeaderName: String? = null,
+    @SerialName("attestation_header_value")
+    val attestationHeaderValue: String? = null
 )

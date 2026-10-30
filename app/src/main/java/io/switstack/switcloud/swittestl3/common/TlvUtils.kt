@@ -8,7 +8,8 @@ import timber.log.Timber
 
 object TlvUtils {
 
-    private val tagUserInterfaceRequestData = BerTag(0xDF, 0x81, 0x16)
+    private val tagUserInterfaceRequestDataC2 = BerTag(0xDF, 0x81, 0x16) // According to Mastercard spec
+    private val tagUserInterfaceRequestDataC8 = BerTag(0x9F, 0x82, 0x05) // According to C8 spec
     private val tagLed = BerTag(0xDF, 0xA0, 0x1B)
     private val parser = BerTlvParser()
 
@@ -30,7 +31,8 @@ object TlvUtils {
                     }
                 }
 
-                tagUserInterfaceRequestData -> {
+                tagUserInterfaceRequestDataC2,
+                tagUserInterfaceRequestDataC8 -> {
                     val userMessage = UserInfo.UserMessage(UserInterfaceRequestData(it.bytesValue))
                     Timber.d("TLV userMessage $userMessage")
                     userInfoList.add(userMessage)

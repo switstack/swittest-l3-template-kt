@@ -11,5 +11,7 @@ data class PaymentRequest(
     @Serializable(with = UuidSerializer::class)
     val paymentId: UUID,
     @SerialName("vcard_data")
-    val vcardData: String? = null
+    val vcardData: String? = null,
+    @SerialName("authorization_response")
+    val authorizationResponse: String? = null
 )
